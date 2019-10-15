@@ -8,8 +8,8 @@ EM.run {
   ws.on :open do |event|
     message = {
       :command => "subscribe",
-      :channel => "orderbooks",
-      :symbol => 'BTC'
+      :channel => "ticker",
+      :symbol => 'XRP'
     }
     ws.send(message.to_json)
   end
@@ -18,4 +18,3 @@ EM.run {
     puts event.data
   end
 }
-
