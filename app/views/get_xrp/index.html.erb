@@ -1,0 +1,12 @@
+<%= link_to 'top', '/' %><br/>
+<table>
+<% @prices.each do |price| %>
+  <tr>
+    <td><%= 'date:'+price[:date].inspect %></td>
+    <td><%= 'open:'+price[:open].inspect %></td>
+    <td><%= 'high:'+price[:high].inspect %></td>
+    <td><%= 'low:'+price[:low].inspect %></td>
+    <td><%= 'price:'+price[:price].inspect %></td>
+    <td><%= 'change:'+price[:change].inspect %></td>
+  </tr>
+<% end %>

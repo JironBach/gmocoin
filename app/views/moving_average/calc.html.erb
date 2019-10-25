@@ -1,0 +1,8 @@
+<%= link_to 'top', '/' %><br/>
+<br/>
+<% i = 0 %>
+<% @calc_array.each do |ma| %>
+  <%= i.to_s %> : <%= ma[1].split(',').inspect %>
+  <br/>
+  <% i += 1 %>
+<% end %>

@@ -1,0 +1,11 @@
+<form action="/set_xrp_xrp" method="POST">
+  <label>CSV: </label>
+  <%= select_tag 'csv_file', options_for_select(@csv_files, class:'option', selected: @csv_files.last) %>
+  <input type="submit" value="送信">
+</form>
+<br/>
+<%= link_to '移動平均をセット', '/moving_average/set_moving_average_data' %><br/>
+<%= link_to '移動平均のチャート', '/moving_average/show_chart' %><br/>
+<%= link_to '移動平均 25', '/moving_average/calc25' %><br/>
+<%= link_to '移動平均 75', '/moving_average/calc75' %><br/>
+<%= link_to 'ゴールデン・デッドクロスの調査', '/moving_average/calc_cross' %><br/>

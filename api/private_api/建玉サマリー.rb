@@ -10,9 +10,9 @@ secretKey = ENV['SECRET_KEY']
 timestamp = DateTime.now.strftime('%Q')
 method    = 'GET'
 endPoint  = 'https://api.coin.z.com/private'
-path      = '/v1/executions'
+path      = '/v1/positionSummary'
 parameters = {
-  :orderId => 145510475
+  :symbol => 'XRP_JPY'
 }
 
 text = timestamp + method + path

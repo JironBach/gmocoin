@@ -1,0 +1,2 @@
+class Xrp < ApplicationRecord
+end

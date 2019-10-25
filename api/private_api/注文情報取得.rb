@@ -12,7 +12,7 @@ method    = 'GET'
 endPoint  = 'https://api.coin.z.com/private'
 path      = '/v1/orders'
 parameters = {
-  :orderId => 123456789
+  :orderId => 145510475
 }
 
 text = timestamp + method + path
@@ -30,4 +30,3 @@ response = Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https'
   http.request(req)
 }
 puts JSON.pretty_generate(JSON.parse(response.body), :indent=>'  ')
-

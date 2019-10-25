@@ -8,23 +8,28 @@ apiKey    = ENV['API_KEY']
 secretKey = ENV['SECRET_KEY']
 
 timestamp = DateTime.now.strftime('%Q')
-method    = 'GET'
+method    = 'POST'
 endPoint  = 'https://api.coin.z.com/private'
-path      = '/v1/executions'
-parameters = {
-  :orderId => 145510475
+path      = '/v1/closeBulkOrder'
+reqBody   = {
+  :symbol => 'XRP_JPY',
+  :side => 'BUY',
+  :executionType => 'MARKET',
+  #:price => '85201',
+  :size => '100'
 }
 
-text = timestamp + method + path
+text = timestamp + method + path + reqBody.to_json
 sign = OpenSSL::HMAC.hexdigest(OpenSSL::Digest::SHA256.new, secretKey, text)
 
 uri = URI.parse(endPoint + path)
-uri.query = URI.encode_www_form(parameters)
-req = Net::HTTP::Get.new(uri.to_s)
+req = Net::HTTP::Post.new(uri.to_s)
 
 req['API-KEY'] = apiKey
 req['API-TIMESTAMP'] = timestamp
 req['API-SIGN'] = sign
+
+req.body = reqBody.to_json
 
 response = Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https') {|http|
   http.request(req)
