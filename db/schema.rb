@@ -13,15 +13,15 @@
 ActiveRecord::Schema.define(version: 20191024214458) do
 
   create_table "moving_averages", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci" do |t|
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.datetime "date", null: false
     t.float "price", limit: 24, null: false
     t.float "ma75", limit: 24, null: false
     t.float "ma25", limit: 24
-    t.boolean "golden_cross", null: false
+    t.boolean "golden_cross"
     t.datetime "golden_date"
-    t.boolean "dead_cross", null: false
+    t.boolean "dead_cross"
     t.datetime "dead_date"
   end
 

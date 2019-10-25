@@ -1,27 +1,32 @@
-class MovingAverageController < ApplicationController
-  CONST_PRICE = 1
-  CONST_DATE = 0
+CONST_DATE = 0
+CONST_PRICE = 1
 
+class MovingAverageController < ApplicationController
   def calc(day)
     @ma_data = Xrp.all.order(:date)
     @ma_date = []
     @ma_calc = []
-    (@ma_data.count - day).times do |i|
-      sum = Xrp.where("id >= (?) " , i).limit(day).sum(:price)
-      puts 'debug:sum='+sum.to_s
-      @ma_date << @ma_data[i].date
+    sum = 0
+    @ma_data.count.times do |j|
+      day.times do |i|
+        next if j <= day
+        sum += @ma_data[j-day+i].price
+        @ma_date << @ma_data[j-day+i].date
+        puts 'debug:sum='+sum.to_s
+      end
       @ma_calc << sum / day
+      sum = 0
     end
-    return :date => @ma_date, :calc => @ma_calc
+    return @ma_date, @ma_calc
   end
 
   def calc25
-    @calc_array = calc(25)
+    @calc_array = calc(25)[CONST_PRICE]
     render '/moving_average/calc'
   end
 
   def calc75
-    @calc_array = calc(75)
+    @calc_array = calc(75)[CONST_PRICE]
     render '/moving_average/calc'
   end
 
@@ -61,11 +66,11 @@ class MovingAverageController < ApplicationController
   # step: 予兆チェックのカウント
   # check: 予兆チェックのリミット
   def lookdown_check(day, data_num, max_count, step, check)
-    calc_array = calc(day)[-data_num, data_num]
+    calc_array = calc(day)[CONST_PRICE][-data_num, data_num]
     lookdown_count = 0
     lookdown_flg = []
     step.step(max_count, step) { |i|
-      if (calc_array[i].split(',')[0][CONST_PRICE].to_f - calc_array[i-step].split(',')[0][CONST_PRICE].to_f) < 0
+      if (calc_array[i].to_f - calc_array[i-step].to_f) < 0
         lookdown_count += 1
       end
       if lookdown_count > check
@@ -105,11 +110,11 @@ class MovingAverageController < ApplicationController
   # step: 予兆チェックのカウント
   # check: 予兆チェックのリミット
   def lookup_check(day, data_num, max_count, step, check)
-    calc_array = calc(day)[-data_num, data_num]
+    calc_array = calc(day)[CONST_PRICE][-data_num, data_num]
     lookup_count = 0
     lookup_flg = []
     step.step(max_count, step) { |i|
-      if (calc_array[i].split(',')[0][CONST_PRICE].to_f - calc_array[i-step].split(',')[0][CONST_PRICE].to_f) > 0
+      if (calc_array[i].to_f - calc_array[i-step].to_f) > 0
         lookup_count += 1
       end
       if lookup_count > check
@@ -147,18 +152,15 @@ class MovingAverageController < ApplicationController
     xrp_data = Xrp.all.order(:date)
     calc75 = calc(75)
     calc25 = calc(25)
-    MovingAverage.destroy_all
+    #MovingAverage.destroy_all
+    recreate_table
     i = 0
     xrp_data.each do |xrp|
       ma = MovingAverage.new
       ma.date = xrp.date
-      puts 'debug:date='+xrp.date.inspect
       ma.price = xrp.price
-      puts 'debug:calc75='+calc75[:price].inspect
-      ma.ma75 = calc75[:price].to_f
-      if tmp_calc25 = calc25.find {|item| item[CONST_DATE] == xrp.date }
-        ma.ma25 = tmp_calc25[:price].to_f
-      end
+      ma.ma75 = calc75[CONST_PRICE][i]
+      ma.ma25 = calc25[CONST_PRICE][i]
       ma.golden_cross = false
       ma.dead_cross = false
       ma.save!
@@ -168,18 +170,41 @@ class MovingAverageController < ApplicationController
   end
 
   def show_chart
-    ma_data = MovingAverage.all.order(:date).last(1000)
+    ma_data = MovingAverage.all.order(:date).last(200)
+    price = ma_data.map{ |ma| ma.price }
     calc75 = ma_data.map{ |ma| ma.ma75 }
     calc25 = ma_data.map{ |ma| ma.ma25 }
     # グラフ（チャート）を作成
     @chart = LazyHighCharts::HighChart.new("graph") do |c|
-      c.title(text: "xrp")
+      c.title(text: "リップル : XRP")
       c.xAxis(categories: ma_data.map{ |ma| ma.date })
       c.yAxis(title: {text: '円'})
+      c.series(name: "終値", data: price)
       c.series(name: "移動平均７５", data: calc75)
       c.series(name: "移動平均２５", data: calc25)
     end
     render :show_chart
+  end
+
+  require Rails.root.join('db/migrate/20191024184314_create_moving_averages.rb')
+  def recreate_table
+    mac = CreateMovingAverages.new
+    begin
+      mac.drop_table :moving_averages
+    rescue
+    end
+    mac.create_table :moving_averages do |t|
+      t.timestamps
+
+      t.datetime(:date, null: false)
+      t.float(:price, null: false)
+      t.float(:ma75, null: false)
+      t.float(:ma25, null: true)
+      t.boolean(:golden_cross, null: true)
+      t.datetime(:golden_date, null: true)
+      t.boolean(:dead_cross, null: true)
+      t.datetime(:dead_date, null: true)
+    end
   end
 
 end
