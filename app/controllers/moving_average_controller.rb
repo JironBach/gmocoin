@@ -12,7 +12,6 @@ class MovingAverageController < ApplicationController
         next if j <= day
         sum += @ma_data[j-day+i].price
         @ma_date << @ma_data[j-day+i].date
-        puts 'debug:sum='+sum.to_s
       end
       @ma_calc << sum / day
       sum = 0
@@ -32,18 +31,16 @@ class MovingAverageController < ApplicationController
 
   def calc_cross
     #ゴールデンクロスの予兆チェック
-    @lookdown_flg = lookdown_check(75, 1500, 60, 10, 4)[:lookdown_flg]
-    @pre_golden75_flg = lookup_check(75, 1500, 40, 10, 3)[:lookup_flg]
-    @golden25_flg = lookup_check(25, 1500, 60, 10, 4)[:lookup_flg]
+    @lookdown_flg = lookdown_check(75, 1500, 60, 10, 4)[0]
+    @pre_golden75_flg = lookup_check(75, 1500, 40, 10, 3)[0]
+    @golden25_flg = lookup_check(25, 1500, 60, 10, 4)[0]
     @golden_flg, @golden_cross = golden_cross
     #デッドクロスの予兆チェック
-    @lookup_flg = lookup_check(75, 1500, 60, 10, 4)[:up_flg]
-    @pre_dead75_flg = lookdown_check(75, 1500, 40, 10, 3)[:lookdown_flg]
-    @dead25_flg = lookdown_check(25, 1500, 60, 10, 4)[:lookdown_flg]
+    @lookup_flg = lookup_check(75, 1500, 60, 10, 4)[0]
+    @pre_dead75_flg = lookdown_check(75, 1500, 40, 10, 3)[0]
+    @dead25_flg = lookdown_check(25, 1500, 60, 10, 4)[0]
     @dead_flg, @dead_cross = dead_cross
     #クロスデータをソート
-    puts 'debug:golden='+@golden_cross.inspect
-    puts 'debug:dead='+@dead_cross.inspect
     @cross = []
     unless @golden_flg
       @golden_cross.each do |gc|
@@ -56,7 +53,6 @@ class MovingAverageController < ApplicationController
       end
     end
     @cross = @cross.sort
-    puts 'debug:@cross='+@cross.inspect
     render 'moving_average/calc_cross'
   end
 
@@ -66,21 +62,31 @@ class MovingAverageController < ApplicationController
   # step: 予兆チェックのカウント
   # check: 予兆チェックのリミット
   def lookdown_check(day, data_num, max_count, step, check)
-    calc_array = calc(day)[CONST_PRICE][-data_num, data_num]
+    @ma = nil
+    select_ma = nil
+    if day = 75
+      select_ma = 'ma75'
+      @ma = MovingAverage.select(select_ma).where('id >= (?)', -data_num).limit(max_count)
+    else day = 25
+      select_ma = 'ma25'
+      @ma = MovingAverage.select(select_ma).where('id >= (?)', -data_num).limit(max_count)
+    end
     lookdown_count = 0
     lookdown_flg = []
-    step.step(max_count, step) { |i|
-      if (calc_array[i].to_f - calc_array[i-step].to_f) < 0
+    i = 0
+    @ma.each do |ma|
+      next if ma.id.nil?
+      if ma.select_ma.to_f < @ma[i-step].select_ma.to_f
         lookdown_count += 1
       end
-      if lookdown_count > check
-        lookdown_flg << true
-      else
-        lookdown_flg << false
-      end
-    }
-    puts 'debug:lookdown_count='+lookdown_flg.count.inspect
-    return :lookdown_flg => lookdown_flg, :calc_array => calc_array
+      i += 1
+    end
+    if lookdown_count > check
+      lookdown_flg << true
+    else
+      lookdown_flg << false
+    end
+    return lookdown_flg, @ma
   end
 
   def golden_cross
@@ -91,8 +97,9 @@ class MovingAverageController < ApplicationController
     #前期長期MA下げ目線がプラス で 後期長期MA上げ目線がプラス
     if lookdown_check(75, 1500, 60, 10, 4)[0] && lookup_check(75, 1500, 40, 10, 3)[0]
       arr_75.count.times do |i|
-        if arr_75[i][1] < arr_25[i][1]
-          golden_cross << @ma_data[i].inspect
+        next if arr_25[1][:id].nil?
+        if arr_75[1].ma75 < arr_25[1]['ma25']
+          golden_cross << @ma_data[i]
           golden_flg << true
         else
           golden_cross << nil
@@ -110,40 +117,52 @@ class MovingAverageController < ApplicationController
   # step: 予兆チェックのカウント
   # check: 予兆チェックのリミット
   def lookup_check(day, data_num, max_count, step, check)
-    calc_array = calc(day)[CONST_PRICE][-data_num, data_num]
+    @ma = nil
+    select_ma = nil
+    if day = 75
+      select_ma = 'ma75'
+    else day = 25
+      select_ma = 'ma25'
+    end
+    @ma = MovingAverage.select(select_ma).where('id >= (?)', -data_num).limit(max_count)
+
     lookup_count = 0
     lookup_flg = []
-    step.step(max_count, step) { |i|
-      if (calc_array[i].to_f - calc_array[i-step].to_f) > 0
+    i = 0
+    @ma.each do |ma|
+      next if ma.id.nil?
+      if ma.select_ma.to_f > @ma[i-step].select_ma.to_f
         lookup_count += 1
       end
-      if lookup_count > check
-        lookup_flg << true
-      else
-        lookup_flg << false
-      end
-    }
-    puts 'debug:lookup_count='+lookup_flg.count.inspect
-    return :lookup_flg => lookup_flg, :calc_array => calc_array
+      i += 1
+    end
+    if lookup_count > check
+      lookup_flg << true
+    else
+      lookup_flg << false
+    end
+    puts 'debug:lookup_flg='+lookup_flg.inspect
+    return lookup_flg, @ma
   end
 
   def dead_cross
-    trash_lookup, arr_75 = lookup_check(75, 1500, 40, 10, 3)
-    trash_cross, arr_25 = lookup_check(25, 1500, 60, 10, 4)
+    trash_look, arr_75 = lookup_check(75, 1500, 40, 10, 3)
+    trash_gc, arr_25 = lookup_check(25, 1500, 60, 10, 4)
     dead_flg = []
     dead_cross = []
-    #前期長期MA上げ目線がプラス で 後期長期MA下げ目線がプラス
-    if lookup_check(75, 1500, 60, 10, 4)[0] && lookdown_check(75, 1500, 40, 10, 3)[0]
+    #前期長期MA下げ目線がプラス で 後期長期MA上げ目線がプラス
+    if lookdown_check(75, 1500, 60, 10, 4)[0] && lookup_check(75, 1500, 40, 10, 3)[0]
       arr_75.count.times do |i|
-        if arr_75[i][1] > arr_25[i][1]
-          dead_cross << @ma_data[i].inspect
+        next if arr_25[1][:id].nil?
+        if arr_75[1].ma75 > arr_25[1]['ma25']
+          dead_cross << @ma_data[i]
           dead_flg << true
         else
           dead_cross << nil
           dead_flg << false
         end
+        puts 'debug:dead_cross='+golden_cross.inspect
       end
-      puts 'debug:dead_count='+dead_cross.count.inspect
     end
     return :dead_flg => dead_flg, :dead_cross => dead_cross
   end

@@ -1,17 +1,25 @@
 <%= link_to 'top', '/' %><br/>
 <br/>
-下げ目線 : <%= @lookdown_flg %><br/>
-プレ ゴールデン 75 : <%= @pre_golden75_flg %><br/>
-プレ ゴールデン 25 : <%= @golden25_flg %><br/>
-ゴールデン flg : <%= @golden_flg %><br/>
-<font color="blue"%>ゴールデン・クロス : <%= @golden_cross %></font><br/>
+<% @golden_flg.count.times do |i| %>
+  下げ目線 : <%= @lookdown_flg %><br/>
+  プレ ゴールデン 75 : <%= @pre_golden75_flg %><br/>
+  プレ ゴールデン 25 : <%= @golden25_flg %><br/>
+  <!-- ゴールデン flg : <%= @golden_flg[:golden_flg] %><br/> -->
+  <font color="blue"%>
+    <% unless @golden_cross.nil? %>
+      ゴールデンクロス : <%= @golden_cross[:golden_cross] %>
+    <% end %>
+  </font><br/>
+<% end %>
 <br/>
-上げ目線 : <%= @lookup_flg %><br/>
-プレ デッド 75 : <%= @pre_dead75_flg %><br/>
-プレ デッド 25 : <%= @dead25_flg %><br/>
-デッド flg : <%= @dead_flg %><br/>
-<font color="red">デッド・クロス : <%= @dead_cross %></font><br/>
-<br/><br/>
-<% @cross.each do |cross| %>
-  <%= cross.inspect %>
+<% @dead_flg.count.times do |i| %>
+  上げ目線 : <%= @lookup_flg %><br/>
+  プレ デッド 75 : <%= @pre_dead75_flg %><br/>
+  プレ デッド 25 : <%= @dead25_flg %><br/>
+  <!-- デッド flg : <%= @dead_flg[:dead_flg] %><br/> -->
+  <font color="red">
+    <% unless @dead_cross.nil? %>
+      デッドクロス : <%= @dead_cross[:dead_cross] %>
+    <% end %>
+  </font><br/>
 <% end %>

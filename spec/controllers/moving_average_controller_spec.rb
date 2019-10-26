@@ -15,6 +15,13 @@ RSpec.describe MovingAverageController, type: :controller do
     end
   end
 
+  context 'moving_average#calc75' do
+    it "get #set_moving_average_data" do
+      get :set_moving_average_data
+      expect(response.status).to eq(200)
+    end
+  end
+
   context 'moving_average#calc_crossを表示' do
     it "get #calc_cross" do
       get :calc_cross
